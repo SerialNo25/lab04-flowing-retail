@@ -47,15 +47,19 @@ public class MessageListener {
       ObjectNode payload = (ObjectNode) message.getData();
       Item[] items = objectMapper.treeToValue(payload.get("items"), Item[].class);
 
-      String pickId = inventoryService.pickItems(Arrays.asList(items), "order", payload.get("orderId").asText());
+      try {
+        String pickId = inventoryService.pickItems(Arrays.asList(items), "order", payload.get("orderId").asText());
 
-      // as in payment - we have to keep the whole order in the payload
-      // as the data flows through this service
+        // as in payment - we have to keep the whole order in the payload
+        // as the data flows through this service
+        payload.put("pickId", pickId);
 
-      payload.put("pickId", pickId);
-
-      messageSender.send(new Message<JsonNode>("GoodsFetchedEvent", message.getTraceid(), payload));
-      emitStockUpdatedEvent();
+        messageSender.send(new Message<JsonNode>("GoodsFetchedEvent", message.getTraceid(), payload));
+        emitStockUpdatedEvent();
+      } catch (IllegalStateException e) {
+        payload.put("reason", e.getMessage());
+        messageSender.send(new Message<JsonNode>("FetchFailedEvent", message.getTraceid(), payload));
+      }
     }
   }
 

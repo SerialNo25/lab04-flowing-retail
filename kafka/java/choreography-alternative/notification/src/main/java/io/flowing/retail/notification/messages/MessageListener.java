@@ -20,7 +20,8 @@ public class MessageListener {
       "PaymentReceivedEvent",
       "GoodsFetchedEvent",
       "GoodsShippedEvent",
-      "OrderCompletedEvent");
+      "OrderCompletedEvent",
+      "OrderCancelledEvent");
 
   @Autowired
   private ObjectMapper objectMapper;
