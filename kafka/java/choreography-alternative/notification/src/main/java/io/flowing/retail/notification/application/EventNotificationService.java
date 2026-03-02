@@ -21,6 +21,7 @@ public class EventNotificationService {
       case "GoodsFetchedEvent" -> "Goods fetched for order " + orderId + ".";
       case "GoodsShippedEvent" -> "Goods shipped for order " + orderId + ".";
       case "OrderCompletedEvent" -> "Order " + orderId + " is completed.";
+      case "OrderCancelledEvent" -> "Order " + orderId + " was cancelled.";
       default -> "Received unsupported event type: " + eventType;
     };
     notificationWriter.writeStatusUpdate(statusMessage);

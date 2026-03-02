@@ -9,8 +9,12 @@ import org.springframework.stereotype.Component;
 public class PaymentService {
 
   public String createPayment(String orderId, long amount) {
-    System.out.println("Create Payment for " + orderId + " with amount "+amount);    
+    System.out.println("Create Payment for " + orderId + " with amount " + amount);
     return UUID.randomUUID().toString();
+  }
+
+  public void revertPayment(String orderId, String paymentId) {
+    System.out.println("Revert Payment " + paymentId + " for order " + orderId);
   }
 
 }
