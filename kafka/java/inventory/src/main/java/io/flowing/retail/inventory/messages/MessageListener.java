@@ -3,6 +3,7 @@ package io.flowing.retail.inventory.messages;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.flowing.retail.inventory.application.InventoryService;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -21,26 +22,28 @@ public class MessageListener {
   @Autowired
   private ObjectMapper objectMapper;
 
+  @PostConstruct
+  public void publishInitialStock() {
+    emitStockUpdatedEvent();
+  }
+
   @Transactional
   @KafkaListener(id = "inventory", topics = MessageSender.TOPIC_NAME)
-  public void messageReceived(String messagePayloadJson, @Header("type") String messageType) throws Exception{
+  public void messageReceived(String messagePayloadJson, @Header("type") String messageType) throws Exception {
     if ("FetchGoodsCommand".equals(messageType)) {
-      Message<FetchGoodsCommandPayload> message = objectMapper.readValue(messagePayloadJson, new TypeReference<Message<FetchGoodsCommandPayload>>() {});
+      Message<FetchGoodsCommandPayload> message = objectMapper.readValue(messagePayloadJson, new TypeReference<Message<FetchGoodsCommandPayload>>() {
+      });
 
       FetchGoodsCommandPayload fetchGoodsCommand = message.getData();
-      String pickId = inventoryService.pickItems( //
-              fetchGoodsCommand.getItems(), fetchGoodsCommand.getReason(), fetchGoodsCommand.getRefId());
+      String pickId = inventoryService.pickItems(fetchGoodsCommand.getItems(), fetchGoodsCommand.getReason(), fetchGoodsCommand.getRefId());
 
-      messageSender.send( //
-              new Message<GoodsFetchedEventPayload>( //
-                      "GoodsFetchedEvent", //
-                      message.getTraceid(), //
-                      new GoodsFetchedEventPayload() //
-                              .setRefId(fetchGoodsCommand.getRefId())
-                              .setPickId(pickId))
-                      .setCorrelationid(message.getCorrelationid()));
+      messageSender.send(new Message<GoodsFetchedEventPayload>("GoodsFetchedEvent", message.getTraceid(), new GoodsFetchedEventPayload().setRefId(fetchGoodsCommand.getRefId()).setPickId(pickId)).setCorrelationid(message.getCorrelationid()));
+      emitStockUpdatedEvent();
     }
   }
 
+  private void emitStockUpdatedEvent() {
+    messageSender.send(new Message<StockUpdatedEventPayload>("StockUpdatedEvent", new StockUpdatedEventPayload().setAvailable(inventoryService.getAvailableStock()).setSold(inventoryService.getSoldStock())));
+  }
 
 }

@@ -2,23 +2,58 @@
 
 <body>
   Place your order: <br />
-  <img src="button.png" onclick="placeOrder()" style="width: 100px;"></img>
+  <img id="orderButton" src="button.png" onclick="placeOrder()" style="width: 100px;"></img>
+  <div id="stock"></div>
   <div id="thanks"></div>
 </body>
 
-	<script type="text/javascript">
+  <script type="text/javascript">
     var count = 0;
-		function placeOrder() {
-			 $.ajax({
+    function renderStock(stock) {
+      var article1 = stock.available.article1 || 0;
+      var article2 = stock.available.article2 || 0;
+      var soldArticle1 = stock.sold.article1 || 0;
+      var soldArticle2 = stock.sold.article2 || 0;
+      var canOrder = article1 >= 5 && article2 >= 10;
+
+      $('#stock').html(
+        '<p>Available stock: article1=' + article1 + ', article2=' + article2 + '</p>' +
+        '<p>Sold stock: article1=' + soldArticle1 + ', article2=' + soldArticle2 + '</p>' +
+        '<p>Status: <b>' + (canOrder ? 'Order possible' : 'Stock exhausted for default order') + '</b></p>'
+      );
+
+      $('#orderButton').css('opacity', canOrder ? 1 : 0.4);
+      $('#orderButton').css('pointer-events', canOrder ? 'auto' : 'none');
+    }
+
+    function refreshStock() {
+      $.ajax({
+        url: './api/stock',
+        type: 'get'
+      }).done(function(stock) {
+        renderStock(stock);
+      });
+    }
+
+    function placeOrder() {
+       $.ajax({
               url: "./api/cart/order?customerId=123",
               type: "put",
               data: {}
           }).done(function(result) {
             count = count+1;
             $('#thanks').html('Thank you for order #' + count + '.<br>Trace id: <b>' + JSON.parse(result).traceId + '</b>');
+            refreshStock();
+          }).fail(function(result) {
+            var errorMessage = result.responseJSON && result.responseJSON.message ? result.responseJSON.message : 'Order failed';
+            $('#thanks').html(errorMessage);
+            refreshStock();
           })
-		}
-	</script>
+    }
+
+    setInterval(refreshStock, 2000);
+    refreshStock();
+  </script>
   <script src="./jquery.min.js"></script>
 
 </html>
